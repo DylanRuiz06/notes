@@ -1,0 +1,223 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+
+public class ListaDobleVillanos {
+    private Nodo cabeza;
+    private Nodo cola;
+
+    public ListaDobleVillanos() {
+        this.cabeza = null;
+        this.cola = null;
+    }
+
+    /**
+     * 1.b. Inserta un nuevo villano de manera ordenada por ID.
+     * Muestra mensaje de error si el ID ya existe.
+     *
+     * @param villano El villano a insertar.
+     * @throws Exception Si el ID ya existe.
+     */
+    public void insertarOrdenado(Villano villano) throws Exception {
+        Nodo nuevoNodo = new Nodo(villano);
+        int nuevoId = villano.getId();
+
+        // Si la lista está vacía
+        if (cabeza == null) {
+            cabeza = nuevoNodo;
+            cola = nuevoNodo;
+            return;
+        }
+
+        Nodo actual = cabeza;
+        while (actual != null) {
+            if (actual.villano.getId() == nuevoId) {
+                throw new Exception("Error: El ID " + nuevoId + " ya existe.");
+            }
+
+            if (actual.villano.getId() > nuevoId) {
+                // Insertar antes del nodo actual
+                nuevoNodo.siguiente = actual;
+                nuevoNodo.anterior = actual.anterior;
+
+                if (actual.anterior == null) { // Insertar al principio
+                    cabeza = nuevoNodo;
+                } else {
+                    actual.anterior.siguiente = nuevoNodo;
+                }
+                actual.anterior = nuevoNodo;
+                return;
+            }
+            actual = actual.siguiente;
+        }
+
+        // Si llega aquí, es el ID más grande, insertar al final
+        cola.siguiente = nuevoNodo;
+        nuevoNodo.anterior = cola;
+        cola = nuevoNodo;
+    }
+
+    /**
+     * 1.c. Muestra los villanos en un JTable.
+     *
+     * @param tabla El JTable donde se mostrarán los datos.
+     */
+    public void mostrarEnTabla(JTable tabla) {
+        DefaultTableModel modelo = (DefaultTableModel) tabla.getModel();
+        // Limpiar tabla antes de mostrar
+        modelo.setRowCount(0);
+
+        Nodo actual = cabeza;
+        while (actual != null) {
+            Villano v = actual.villano;
+            modelo.addRow(new Object[]{
+                    v.getId(),
+                    v.getAlias(),
+                    v.getEspecialidad(),
+                    v.getNivelPeligrosidad(),
+                    v.getUbicacion()
+            });
+            actual = actual.siguiente;
+        }
+    }
+
+    /**
+     * Convierte la lista enlazada a un ArrayList para búsquedas y ordenamientos.
+     *
+     * @return Un ArrayList de Villanos.
+     */
+    private ArrayList<Villano> toArrayList() {
+        ArrayList<Villano> lista = new ArrayList<>();
+        Nodo actual = cabeza;
+        while (actual != null) {
+            lista.add(actual.villano);
+            actual = actual.siguiente;
+        }
+        return lista;
+    }
+
+    /**
+     * 2.a/b/c. Implementa una búsqueda binaria por ID.
+     *
+     * @param id El ID a buscar.
+     * @return El Villano encontrado o null si no existe.
+     */
+    public Villano busquedaBinaria(int id) {
+        ArrayList<Villano> lista = toArrayList(); // La lista ya está ordenada por ID
+        int bajo = 0;
+        int alto = lista.size() - 1;
+
+        while (bajo <= alto) {
+            int medio = bajo + (alto - bajo) / 2;
+            Villano v = lista.get(medio);
+
+            if (v.getId() == id) {
+                return v; // Encontrado
+            } else if (v.getId() < id) {
+                bajo = medio + 1;
+            } else {
+                alto = medio - 1;
+            }
+        }
+        return null; // No encontrado
+    }
+
+    /**
+     * 3.a/b. Filtra villanos por especialidad.
+     *
+     * @param especialidad La especialidad a filtrar.
+     * @return Una nueva ArrayList con los villanos filtrados.
+     */
+    public ArrayList<Villano> filtrarPorEspecialidad(String especialidad) {
+        ArrayList<Villano> filtrados = new ArrayList<>();
+        Nodo actual = cabeza;
+        while (actual != null) {
+            if (actual.villano.getEspecialidad().equals(especialidad)) {
+                filtrados.add(actual.villano);
+            }
+            actual = actual.siguiente;
+        }
+        return filtrados;
+    }
+
+    /**
+     * 3.c. Ordena una lista por Nivel de Peligrosidad (mayor a menor) usando selección.
+     *
+     * @param lista La lista a ordenar.
+     */
+    public void ordenarPorPeligrosidadSeleccion(ArrayList<Villano> lista) {
+        int n = lista.size();
+        for (int i = 0; i < n - 1; i++) {
+            int max_idx = i;
+            for (int j = i + 1; j < n; j++) {
+                if (lista.get(j).getNivelPeligrosidad() > lista.get(max_idx).getNivelPeligrosidad()) {
+                    max_idx = j;
+                }
+            }
+            // Intercambiar el elemento encontrado (mayor) con el elemento i
+            Villano temp = lista.get(max_idx);
+            lista.set(max_idx, lista.get(i));
+            lista.set(i, temp);
+        }
+    }
+
+    /**
+     * 3.d. Muestra una lista de villanos en un JTable.
+     *
+     * @param tabla   El JTable donde se mostrarán los datos.
+     * @param villanos La lista de villanos a mostrar.
+     */
+    public void mostrarListaEnTabla(JTable tabla, ArrayList<Villano> villanos) {
+        DefaultTableModel modelo = (DefaultTableModel) tabla.getModel();
+        modelo.setRowCount(0); // Limpiar tabla
+
+        for (Villano v : villanos) {
+            modelo.addRow(new Object[]{
+                    v.getId(),
+                    v.getAlias(),
+                    v.getEspecialidad(),
+                    v.getNivelPeligrosidad(),
+                    v.getUbicacion()
+            });
+        }
+    }
+
+    /**
+     * 4.a/b. Inicia el conteo recursivo por ubicación.
+     *
+     * @param ubicaciones Lista de ubicaciones para contar.
+     * @param textArea    El TextArea para mostrar resultados.
+     */
+    public void contarPorUbicacion(String[] ubicaciones, JTextArea textArea) {
+        textArea.setText(""); // Limpiar
+        for (String ubi : ubicaciones) {
+            int count = conteoRecursivo(cabeza, ubi);
+            textArea.append(ubi + ": " + count + " villanos\n");
+        }
+    }
+
+    /**
+     * 4.a/b. Función recursiva para contar villanos en una ubicación.
+     *
+     * @param nodo      El nodo actual desde donde empezar/continuar.
+     * @param ubicacion La ubicación a contar.
+     * @return El número de villanos en esa ubicación desde este nodo en adelante.
+     */
+    private int conteoRecursivo(Nodo nodo, String ubicacion) {
+        // Caso base: Si el nodo es null, no hay más villanos, retorna 0.
+        if (nodo == null) {
+            return 0;
+        }
+
+        // Verifica si el villano actual está en la ubicación buscada.
+        int countActual = 0;
+        if (nodo.villano.getUbicacion().equals(ubicacion)) {
+            countActual = 1;
+        }
+
+        // Llamada recursiva: Suma el resultado actual con el conteo del resto de la lista.
+        return countActual + conteoRecursivo(nodo.siguiente, ubicacion);
+    }
+}

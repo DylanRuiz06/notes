@@ -1,0 +1,110 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.util.ArrayList;
+
+public class MainApp {
+
+    private ListaDobleVillanos listaVillanos = new ListaDobleVillanos();
+    private JTable tablaPrincipal;
+    private JTable tablaFiltrada;
+    private JTextArea areaConteo;
+    private JTextField txtId, txtAlias;
+    private JComboBox<String> comboEspecialidad, comboUbicacion;
+    private JComboBox<Integer> comboPeligro;
+    private JTextField txtIdBusqueda;
+
+    // --- Constructor y creación de la GUI (Omitido por brevedad) ---
+    // ... Debes crear los componentes Swing y añadirlos a un JFrame ...
+
+    private void inicializarComponentes() {
+        // ... inicializar JTable, JTextFields, JComboBoxes, JTextArea ...
+
+        // Llenar ComboBoxes
+        String[] especialidades = {"💣 Explosivos", "💻 Hackeo", "🧠 Manipulación", "🎭 Disfraz", "🧬 Biotecnología"};
+        String[] ubicaciones = {"🏥 Arkham", "🏢 Belle Reve", "🛸 Área 51", "🏰 Fortaleza Oscura", "👻 Zona Fantasma"};
+        for (String s : especialidades) comboEspecialidad.addItem(s);
+        for (String u : ubicaciones) comboUbicacion.addItem(u);
+        for (int i = 1; i <= 10; i++) comboPeligro.addItem(i);
+
+        // Configurar JTables con columnas
+        String[] columnas = {"ID", "Alias", "Especialidad", "Peligrosidad", "Ubicación"};
+        tablaPrincipal.setModel(new DefaultTableModel(null, columnas));
+        tablaFiltrada.setModel(new DefaultTableModel(null, columnas));
+
+        // Configurar Botones y ActionListeners
+        JButton btnAgregar = new JButton("Agregar");
+        btnAgregar.addActionListener(e -> agregarVillano());
+
+        JButton btnBuscar = new JButton("Buscar");
+        btnBuscar.addActionListener(e -> buscarVillano());
+
+        JButton btnFiltrar = new JButton("Filtrar");
+        btnFiltrar.addActionListener(e -> filtrarOrdenar());
+
+        JButton btnContar = new JButton("Contar");
+        btnContar.addActionListener(e -> contarVillanos());
+    }
+
+
+    private void agregarVillano() {
+        try {
+            int id = Integer.parseInt(txtId.getText());
+            String alias = txtAlias.getText();
+            String esp = (String) comboEspecialidad.getSelectedItem();
+            int nivel = (Integer) comboPeligro.getSelectedItem();
+            String ubi = (String) comboUbicacion.getSelectedItem();
+
+            if (alias.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "El alias no puede estar vacío.");
+                return;
+            }
+
+            Villano v = new Villano(id, alias, esp, nivel, ubi);
+            listaVillanos.insertarOrdenado(v);
+            listaVillanos.mostrarEnTabla(tablaPrincipal); // Actualizar tabla
+            JOptionPane.showMessageDialog(null, "Villano agregado exitosamente.");
+
+        } catch (NumberFormatException nfe) {
+            JOptionPane.showMessageDialog(null, "Error: El ID debe ser un número.");
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(null, ex.getMessage());
+        }
+    }
+
+    private void buscarVillano() {
+         try {
+            int idBusqueda = Integer.parseInt(txtIdBusqueda.getText());
+            Villano v = listaVillanos.busquedaBinaria(idBusqueda);
+
+            if (v != null) {
+                // Mostrar datos en campos editables (ej. JLabels o JTextFields)
+                JOptionPane.showMessageDialog(null, "Villano encontrado:\n" + v.toString());
+                // Aquí podrías llenar txtId, txtAlias, etc., con los datos de 'v'
+                // para permitir la edición.
+            } else {
+                JOptionPane.showMessageDialog(null, "Villano con ID " + idBusqueda + " no encontrado.");
+            }
+        } catch (NumberFormatException nfe) {
+            JOptionPane.showMessageDialog(null, "Error: El ID de búsqueda debe ser un número.");
+        }
+    }
+
+    private void filtrarOrdenar() {
+        String espFiltro = (String) comboEspecialidad.getSelectedItem(); // Suponiendo que tienes un combo para filtrar
+        ArrayList<Villano> filtrados = listaVillanos.filtrarPorEspecialidad(espFiltro);
+        listaVillanos.ordenarPorPeligrosidadSeleccion(filtrados);
+        listaVillanos.mostrarListaEnTabla(tablaFiltrada, filtrados);
+    }
+
+    private void contarVillanos() {
+        String[] ubicaciones = {"🏥 Arkham", "🏢 Belle Reve", "🛸 Área 51", "🏰 Fortaleza Oscura", "👻 Zona Fantasma"};
+        listaVillanos.contarPorUbicacion(ubicaciones, areaConteo);
+    }
+
+    public static void main(String[] args) {
+        // Lógica para iniciar la aplicación Swing
+        // SwingUtilities.invokeLater(() -> new MainApp().setVisible(true));
+        System.out.println("Recuerda implementar la GUI con Swing y conectar los botones.");
+    }
+}

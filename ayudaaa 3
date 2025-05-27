@@ -1,0 +1,167 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+
+public class VillanosApp {
+    // --- Estos se vinculan automáticamente desde el .form si les diste Field Name ---
+    private JPanel mainPanel;
+    private JTextField idTextField;
+    private JTextField aliasTextField;
+    private JComboBox<String> especialidadComboBox;
+    private JComboBox<Integer> nivelComboBox;
+    private JComboBox<String> ubicacionComboBox;
+    private JButton agregarButton;
+    private JButton buscarButton;
+    private JTable tablaPrincipal;
+    private JTextField idBusquedaTextField;
+    private JComboBox<String> filtroEspecialidadComboBox; // Necesitarás otro combo para filtrar
+    private JButton filtrarButton;
+    private JTable tablaFiltrada;
+    private JButton contarButton;
+    private JTextArea conteoTextArea;
+
+    // --- Tu lógica ---
+    private ListaDobleVillanos listaVillanos = new ListaDobleVillanos();
+
+    // --- Constructor ---
+    public VillanosApp() {
+        // Aquí es donde conectaremos los botones
+        inicializarComponentesGUI(); // Método para poblar combos, etc.
+        conectarBotones();
+    }
+
+    // --- Método Main para lanzar la App ---
+    public static void main(String[] args) {
+        JFrame frame = new JFrame("Registro de Villanos");
+        frame.setContentPane(new VillanosApp().mainPanel); // <- Clave: Usa el panel principal
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.pack(); // Ajusta el tamaño
+        frame.setLocationRelativeTo(null); // Centra
+        frame.setVisible(true);
+    }
+
+    // --- Método para configurar JTables y ComboBoxes ---
+    private void inicializarComponentesGUI() {
+        // Poblar ComboBoxes
+        String[] especialidades = {"💣 Explosivos", "💻 Hackeo", "🧠 Manipulación", "🎭 Disfraz", "🧬 Biotecnología"};
+        String[] ubicaciones = {"🏥 Arkham", "🏢 Belle Reve", "🛸 Área 51", "🏰 Fortaleza Oscura", "👻 Zona Fantasma"};
+
+        for (String s : especialidades) {
+            especialidadComboBox.addItem(s);
+            filtroEspecialidadComboBox.addItem(s); // También para el filtro
+        }
+        for (String u : ubicaciones) ubicacionComboBox.addItem(u);
+        for (int i = 1; i <= 10; i++) nivelComboBox.addItem(i);
+
+        // Configurar JTables
+        String[] columnas = {"ID", "Alias", "Especialidad", "Peligrosidad", "Ubicación"};
+        tablaPrincipal.setModel(new DefaultTableModel(null, columnas));
+        tablaFiltrada.setModel(new DefaultTableModel(null, columnas));
+
+        // Hacer JTextArea no editable si es necesario
+        conteoTextArea.setEditable(false);
+    }
+
+    // --- Método para conectar los ActionListeners ---
+    private void conectarBotones() {
+
+        // 1. Botón Agregar
+        agregarButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                agregarVillanoAction();
+            }
+        });
+
+        // 2. Botón Buscar (Usando Lambda - más corto)
+        buscarButton.addActionListener(e -> buscarVillanoAction());
+
+        // 3. Botón Filtrar
+        filtrarButton.addActionListener(e -> filtrarOrdenarAction());
+
+        // 4. Botón Contar
+        contarButton.addActionListener(e -> contarVillanosAction());
+    }
+
+    // --- Métodos de Acción (Llamados por los Listeners) ---
+
+    private void agregarVillanoAction() {
+        try {
+            // Validar que el ID no esté vacío
+            if (idTextField.getText().trim().isEmpty()) {
+                JOptionPane.showMessageDialog(mainPanel, "El ID no puede estar vacío.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+             // Validar que el Alias no esté vacío
+            if (aliasTextField.getText().trim().isEmpty()) {
+                JOptionPane.showMessageDialog(mainPanel, "El Alias no puede estar vacío.", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            int id = Integer.parseInt(idTextField.getText().trim());
+            String alias = aliasTextField.getText().trim();
+            String esp = (String) especialidadComboBox.getSelectedItem();
+            int nivel = (Integer) nivelComboBox.getSelectedItem();
+            String ubi = (String) ubicacionComboBox.getSelectedItem();
+
+
+            Villano v = new Villano(id, alias, esp, nivel, ubi);
+            listaVillanos.insertarOrdenado(v);
+            listaVillanos.mostrarEnTabla(tablaPrincipal); // Actualizar tabla
+            JOptionPane.showMessageDialog(mainPanel, "Villano agregado exitosamente.", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+
+            // Limpiar campos
+            idTextField.setText("");
+            aliasTextField.setText("");
+
+        } catch (NumberFormatException nfe) {
+            JOptionPane.showMessageDialog(mainPanel, "Error: El ID debe ser un número.", "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(mainPanel, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void buscarVillanoAction() {
+        try {
+            if (idBusquedaTextField.getText().trim().isEmpty()) {
+                 JOptionPane.showMessageDialog(mainPanel, "Ingrese un ID para buscar.", "Advertencia", JOptionPane.WARNING_MESSAGE);
+                 return;
+            }
+            int idBusqueda = Integer.parseInt(idBusquedaTextField.getText().trim());
+            Villano v = listaVillanos.busquedaBinaria(idBusqueda);
+
+            if (v != null) {
+                // Mostrar datos en los campos para editar (o en un diálogo)
+                idTextField.setText(String.valueOf(v.getId()));
+                aliasTextField.setText(v.getAlias());
+                especialidadComboBox.setSelectedItem(v.getEspecialidad());
+                nivelComboBox.setSelectedItem(v.getNivelPeligrosidad());
+                ubicacionComboBox.setSelectedItem(v.getUbicacion());
+                JOptionPane.showMessageDialog(mainPanel, "Villano encontrado. Datos cargados para editar.", "Encontrado", JOptionPane.INFORMATION_MESSAGE);
+                // NOTA: Si quieres editar, necesitarás un botón "Guardar Cambios"
+                // y una forma de saber qué villano se está editando.
+            } else {
+                JOptionPane.showMessageDialog(mainPanel, "Villano con ID " + idBusqueda + " no encontrado.", "No Encontrado", JOptionPane.WARNING_MESSAGE);
+            }
+        } catch (NumberFormatException nfe) {
+            JOptionPane.showMessageDialog(mainPanel, "Error: El ID de búsqueda debe ser un número.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void filtrarOrdenarAction() {
+        String espFiltro = (String) filtroEspecialidadComboBox.getSelectedItem();
+        ArrayList<Villano> filtrados = listaVillanos.filtrarPorEspecialidad(espFiltro);
+        listaVillanos.ordenarPorPeligrosidadSeleccion(filtrados);
+        listaVillanos.mostrarListaEnTabla(tablaFiltrada, filtrados);
+        if (filtrados.isEmpty()) {
+            JOptionPane.showMessageDialog(mainPanel, "No se encontraron villanos con esa especialidad.", "Filtro", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
+    private void contarVillanosAction() {
+        String[] ubicaciones = {"🏥 Arkham", "🏢 Belle Reve", "🛸 Área 51", "🏰 Fortaleza Oscura", "👻 Zona Fantasma"};
+        listaVillanos.contarPorUbicacion(ubicaciones, conteoTextArea);
+    }
+}
